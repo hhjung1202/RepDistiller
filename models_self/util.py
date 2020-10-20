@@ -45,8 +45,8 @@ class Style_Contrastive(nn.Module):
     def style_contrastive(self, content, style):
         assert content.size(0) == style.size(0), "unequal batch size between student and teacher"
         b = content.size(0)
-        f_c = F.normalize(self.gram_matrix(content), p=1, dim=-1).view(b,1,-1)
-        f_s = F.normalize(self.gram_matrix(style), p=1, dim=-1).view(1,b,-1)
+        f_c = F.normalize(self.gram_matrix(content), p=1, dim=-1).view(1,b,-1)
+        f_s = F.normalize(self.gram_matrix(style), p=1, dim=-1).view(b,1,-1)
 
         mse = ((f_c - f_s)**2).sum(dim=2).view(b,b)
         return mse
