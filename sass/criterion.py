@@ -1,4 +1,3 @@
-import torch
 from torch import nn
 import torch.nn.functional as F
 
@@ -14,9 +13,10 @@ class StLoss(nn.Module):
 class StyleLoss(nn.Module):
     def __init__(self):
         super(StyleLoss, self).__init__()
+        self.softmin = nn.Softmin(dim=-1)
 
     def forward(self, input, target, weight):
-        likelihood = softmin(input * weight)
+        likelihood = self.softmin(input * weight)
         log_likelihood = likelihood.log()
         nll_loss = F.nll_loss(log_likelihood, target)
         return nll_loss
