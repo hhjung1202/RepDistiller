@@ -40,6 +40,7 @@ def parse_option():
 
     parser = argparse.ArgumentParser('argument for training')
 
+    parser.add_argument('--gpu', default='0', type=str, help='Multi GPU ids to use.')
     parser.add_argument('--print_freq', type=int, default=100, help='print frequency')
     parser.add_argument('--tb_freq', type=int, default=500, help='tb frequency')
     parser.add_argument('--save_freq', type=int, default=40, help='save frequency')
@@ -151,6 +152,7 @@ def main():
     best_acc = 0
 
     opt = parse_option()
+    os.environ["CUDA_VISIBLE_DEVICES"] = opt.gpu
 
     # tensorboard logger
     logger = tb_logger.Logger(logdir=opt.tb_folder, flush_secs=2)
