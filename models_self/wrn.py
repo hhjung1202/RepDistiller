@@ -152,7 +152,7 @@ class WideResNet(nn.Module):
         f3 = out
         out = self.relu(self.bn1(out))
         base = self.fx(out)
-        st_mse = self.Style_Contrastive(base, style_)
+        st_mse = self.Style_Contrastive(style_, base)
         out = F.avg_pool2d(out, 8)
         out = out.view(-1, self.nChannels)
         f4 = out
