@@ -116,7 +116,7 @@ class WideResNet(nn.Module):
         if is_feat:
             return self.forward_base(x, preact)
         else:
-            if style_set[1] == None:
+            if style_set[1] is None:
                 return self.extract_style(x, style_set)
             else:
                 return self.forward_style(x, preact, style_set)
