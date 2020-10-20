@@ -69,7 +69,7 @@ def parse_option():
     # distillation
     parser.add_argument('--distill', type=str, default='kd', choices=['kd', 'hint', 'attention', 'similarity',
                                                                       'correlation', 'vid', 'crd', 'kdsvd', 'fsp',
-                                                                      'rkd', 'pkt', 'abound', 'factor', 'nst'])
+                                                                      'rkd', 'pkt', 'abound', 'factor', 'nst', 'self'])
     parser.add_argument('--trial', type=str, default='1', help='trial id')
 
     parser.add_argument('-r', '--gamma', type=float, default=1, help='weight for classification')
@@ -90,7 +90,6 @@ def parse_option():
     parser.add_argument('--hint_layer', default=2, type=int, choices=[0, 1, 2, 3, 4])
 
     # self
-    parser.add_argument('--self', default=1, type=int, choices=[0, 1])
     parser.add_argument('--pos', default=1, type=int, choices=[0, 1, 2, 3])
 
     opt = parser.parse_args()
@@ -125,7 +124,7 @@ def parse_option():
     if not os.path.isdir(opt.save_folder):
         os.makedirs(opt.save_folder)
 
-    opt.is_self = True if opt.self == 0 else False
+    opt.is_self = True if opt.distill == "self" else False
 
     return opt
 
@@ -173,15 +172,16 @@ def main():
 
     # model
     model_t = load_teacher(opt.path_t, n_cls)
-    if opt.is_self:
-        model_s = model_dict_self[opt.model_s](num_classes=n_cls)
-    else:
-        model_s = model_dict[opt.model_s](num_classes=n_cls)
 
     data = torch.randn(2, 3, 32, 32)
     model_t.eval()
-    model_s.eval()
     feat_t, _ = model_t(data, is_feat=True)
+    
+    if opt.is_self:
+        model_s = model_dict_self[opt.model_s](num_classes=n_cls, feat_t=feat_t)
+    else:
+        model_s = model_dict[opt.model_s](num_classes=n_cls)
+    model_s.eval()
     feat_s, _ = model_s(data, is_feat=True)
 
     module_list = nn.ModuleList([])
