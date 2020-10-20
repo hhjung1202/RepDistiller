@@ -84,7 +84,7 @@ class WideResNet(nn.Module):
                     ]
         self.Style_Contrastive = Style_Contrastive()
         self.adain = Adain()
-        self.g_x = nn.Conv2d(nChannels[3], nChannels[3], kernel_size=1, stride=1, padding=0, bias=False)
+        self.fx = nn.Conv2d(nChannels[3], nChannels[3], kernel_size=1, stride=1, padding=0, bias=False)
         # here
 
         for m in self.modules():
@@ -112,46 +112,64 @@ class WideResNet(nn.Module):
 
         return [bn1, bn2, bn3]
 
-    def forward(self, x, g_t, is_feat=False, preact=False):
-        style_label = torch.randperm(x.size(0)).cuda()
+    def forward(self, x, is_feat=False, preact=False, style_set=[None, None, None, None]):
+        if is_feat:
+            return self.forward_base(x, preact)
+        else:
+            if style_set[1] == None:
+                return self.extract_style(x, style_set)
+            else:
+                return self.forward_style(x, preact, style_set)
+
+    def extract_style(self, x, style_set):
+        group_t, _, pos, st_label = style_set
         out = self.conv1(x)
-        # out = self.adaptive_forward(out, style_label, g_t[0], 0)
+        if pos == 0:
+            out = self.adaptive_forward(out, st_label, group_t[pos], pos)
         out = self.block1(out)
-        # out = self.adaptive_forward(out, style_label, g_t[1], 1)
+        if pos == 1:
+            out = self.adaptive_forward(out, st_label, group_t[pos], pos)
         out = self.block2(out)
-        # out = self.adaptive_forward(out, style_label, g_t[2], 2)
+        if pos == 2:
+            out = self.adaptive_forward(out, st_label, group_t[pos], pos)
         out = self.block3(out)
-        # out = self.adaptive_forward(out, style_label, g_t[3], 3)
+        if pos == 3:
+            out = self.adaptive_forward(out, st_label, group_t[pos], pos)
         out = self.relu(self.bn1(out))
+        style = self.fx(out)
+        return style
+
+    def forward_style(self, x, preact, style_set):
+        style_ = style_set[1]
+
+        out = self.conv1(x)
+        f0 = out
+        out = self.block1(out)
+        f1 = out
+        out = self.block2(out)
+        f2 = out
+        out = self.block3(out)
+        f3 = out
+        out = self.relu(self.bn1(out))
+        base = self.fx(out)
+        st_mse = self.Style_Contrastive(base, style_)
         out = F.avg_pool2d(out, 8)
         out = out.view(-1, self.nChannels)
+        f4 = out
         out = self.fc(out)
-        if is_feat:
-            if preact:
-                f1 = self.block2.layer[0].bn1(f1)
-                f2 = self.block3.layer[0].bn1(f2)
-                f3 = self.bn1(f3)
-            return [f0, f1, f2, f3, f4], out
-        else:
-            return out
+        if preact:
+            f1 = self.block2.layer[0].bn1(f1)
+            f2 = self.block3.layer[0].bn1(f2)
+            f3 = self.bn1(f3)
+        return [f0, f1, f2, f3, f4], out, st_mse
 
-    def adaptive_forward(self, f_s, style_label, f_t, i):
+    def adaptive_forward(self, f_s, st_label, f_t, i):
         if f_s.size(1) != f_t.size(1):
             f_s = self.conv_embed[i](f_s)
 
-        return self.adain(f_s, f_t, style_label)
+        return self.adain(f_s, f_t, st_label)
 
-
-    def forward_style(self, x):
-        x = self.g_x(x)
-        st_mse = self.Style_Contrastive(x, x.clone()) # 코드 수정 필수
-
-        return st_mse
-            # 1 by 1 conv
-
-
-
-    def forward(self, x, is_feat=False, preact=False):
+    def forward_base(self, x, preact):
         out = self.conv1(x)
         f0 = out
         out = self.block1(out)
@@ -165,14 +183,11 @@ class WideResNet(nn.Module):
         out = out.view(-1, self.nChannels)
         f4 = out
         out = self.fc(out)
-        if is_feat:
-            if preact:
-                f1 = self.block2.layer[0].bn1(f1)
-                f2 = self.block3.layer[0].bn1(f2)
-                f3 = self.bn1(f3)
-            return [f0, f1, f2, f3, f4], out
-        else:
-            return out
+        if preact:
+            f1 = self.block2.layer[0].bn1(f1)
+            f2 = self.block3.layer[0].bn1(f2)
+            f3 = self.bn1(f3)
+        return [f0, f1, f2, f3, f4], out
 
 
 def wrn(**kwargs):

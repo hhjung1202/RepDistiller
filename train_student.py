@@ -17,6 +17,7 @@ import torch.backends.cudnn as cudnn
 
 
 from models import model_dict
+from models_self import model_dict_self
 from models.util import Embed, ConvReg, LinearEmbed
 from models.util import Connector, Translator, Paraphraser
 
@@ -27,6 +28,7 @@ from helper.util import adjust_learning_rate
 from distiller_zoo import DistillKL, HintLoss, Attention, Similarity, Correlation, VIDLoss, RKDLoss
 from distiller_zoo import PKT, ABLoss, FactorTransfer, KDSVD, FSP, NSTLoss
 from crd.criterion import CRDLoss
+from sass.criterion import StLoss
 
 from helper.loops import train_distill as train, validate
 from helper.pretrain import init
@@ -87,6 +89,10 @@ def parse_option():
     # hint layer
     parser.add_argument('--hint_layer', default=2, type=int, choices=[0, 1, 2, 3, 4])
 
+    # self
+    parser.add_argument('--self', default=1, type=int, choices=[0, 1])
+    parser.add_argument('--pos', default=1, type=int, choices=[0, 1, 2, 3])
+
     opt = parser.parse_args()
 
     # set different learning rate from these 4 models
@@ -118,6 +124,8 @@ def parse_option():
     opt.save_folder = os.path.join(opt.model_path, opt.model_name)
     if not os.path.isdir(opt.save_folder):
         os.makedirs(opt.save_folder)
+
+    opt.is_self = True if opt.self == 0 else False
 
     return opt
 
@@ -165,7 +173,10 @@ def main():
 
     # model
     model_t = load_teacher(opt.path_t, n_cls)
-    model_s = model_dict[opt.model_s](num_classes=n_cls)
+    if opt.is_self:
+        model_s = model_dict_self[opt.model_s](num_classes=n_cls)
+    else:
+        model_s = model_dict[opt.model_s](num_classes=n_cls)
 
     data = torch.randn(2, 3, 32, 32)
     model_t.eval()
@@ -261,6 +272,8 @@ def main():
         init(model_s, model_t, init_trainable_list, criterion_kd, train_loader, logger, opt)
         # classification training
         pass
+    elif opt.distill == "self":
+        criterion_kd = StLoss()
     else:
         raise NotImplementedError(opt.distill)
 

@@ -107,14 +107,22 @@ def train_distill(epoch, train_loader, module_list, criterion_list, optimizer, o
             if opt.distill in ['crd']:
                 contrast_idx = contrast_idx.cuda()
 
+
         # ===================forward=====================
+        st_label = torch.randperm(input.size(0)).cuda()
         preact = False
         if opt.distill in ['abound']:
             preact = True
-        feat_s, logit_s = model_s(input, is_feat=True, preact=preact)
         with torch.no_grad():
             feat_t, logit_t = model_t(input, is_feat=True, preact=preact)
             feat_t = [f.detach() for f in feat_t]
+            if opt.is_self:
+                style = model_s(input, style_set=[feat_t, None, opt.pos, st_label])
+                style = style.detach()
+        if opt.is_self:
+            feat_s, logit_s, st_mse = model_s(input, preact=preact, style_set=[None, style, None, None])
+        else:
+            feat_s, logit_s = model_s(input, is_feat=True, preact=preact)
 
         # cls + kl div
         loss_cls = criterion_cls(logit_s, target)
@@ -178,6 +186,8 @@ def train_distill(epoch, train_loader, module_list, criterion_list, optimizer, o
             factor_s = module_list[1](feat_s[-2])
             factor_t = module_list[2](feat_t[-2], is_factor=True)
             loss_kd = criterion_kd(factor_s, factor_t)
+        elif opt.distill == "self":
+            loss_kd = criterion_kd(st_mse, st_label)
         else:
             raise NotImplementedError(opt.distill)
 

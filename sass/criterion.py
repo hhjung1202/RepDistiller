@@ -2,29 +2,21 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-eps = 1e-7
-
-
-class Style_Contrastive(nn.Module):
+class StLoss(nn.Module):
     def __init__(self):
-        super(Style_Contrastive, self).__init__()
-        self.MSELoss = nn.MSELoss()
-        self.softmin = nn.Softmin(dim=-1)
+        super(StLoss, self).__init__()
+        self.criterion_s = StyleLoss()
 
-    def style_contrastive(self, content, style, b):
-        f_c = F.normalize(self.gram_matrix(content), p=1, dim=-1).view(b,1,-1)
-        f_s = F.normalize(self.gram_matrix(style), p=1, dim=-1).view(1,b,-1)
+    def forward(self, st_mse, st_label, weight=1e-1):
+        loss_s = self.criterion_s(st_mse, st_label, weight)
+        return loss
 
-        mse = ((f_c - f_s)**2).sum(dim=2).view(b,b)
-        return mse
+class StyleLoss(nn.Module):
+    def __init__(self):
+        super(StyleLoss, self).__init__()
 
-    def forward(self, content, style, b):
-        mse = self.style_contrastive(content, style, b)
-        return mse
-    
-    def gram_matrix(self, input):
-        a, b, c, d = input.size()
-        features = input.view(a, b, c * d)
-        G = torch.bmm(features, torch.transpose(features, 1,2))
-        return G.div(b * c * d)
-
+    def forward(self, input, target, weight):
+        likelihood = softmin(input * weight)
+        log_likelihood = likelihood.log()
+        nll_loss = F.nll_loss(log_likelihood, target)
+        return nll_loss
