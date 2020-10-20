@@ -88,6 +88,7 @@ def train_distill(epoch, train_loader, module_list, criterion_list, optimizer, o
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
+    loss_kds = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
 
@@ -195,6 +196,7 @@ def train_distill(epoch, train_loader, module_list, criterion_list, optimizer, o
 
         acc1, acc5 = accuracy(logit_s, target, topk=(1, 5))
         losses.update(loss.item(), input.size(0))
+        loss_kds.update(loss_kd.item(), input.size(0))
         top1.update(acc1[0], input.size(0))
         top5.update(acc5[0], input.size(0))
 
@@ -213,10 +215,11 @@ def train_distill(epoch, train_loader, module_list, criterion_list, optimizer, o
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                  'Loss_kd {loss_kd.val:.4f} ({loss_kd.avg:.4f})\t'
                   'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                   'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                 epoch, idx, len(train_loader), batch_time=batch_time,
-                data_time=data_time, loss=losses, top1=top1, top5=top5))
+                data_time=data_time, loss=losses, loss_kd=loss_kds, top1=top1, top5=top5))
             sys.stdout.flush()
 
     print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
@@ -245,8 +248,12 @@ def validate(val_loader, model, criterion, opt):
                 target = target.cuda()
 
             # compute output
-            output = model(input)
+            if opt.is_self:
+                _, output = model(input, is_feat=True)    
+            else:
+                output = model(input)
             loss = criterion(output, target)
+
 
             # measure accuracy and record loss
             acc1, acc5 = accuracy(output, target, topk=(1, 5))
