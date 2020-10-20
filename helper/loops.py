@@ -131,7 +131,7 @@ def train_distill(epoch, train_loader, module_list, criterion_list, optimizer, o
 
         # other kd beyond KL divergence
         if opt.distill == 'kd':
-            loss_kd = 0
+            loss_kd = torch.FloatTensor([0]).cuda()
         elif opt.distill == 'hint':
             f_s = module_list[1](feat_s[opt.hint_layer])
             f_t = feat_t[opt.hint_layer]
