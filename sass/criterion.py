@@ -7,7 +7,7 @@ class StLoss(nn.Module):
         super(StLoss, self).__init__()
         self.criterion_s = StyleLoss()
 
-    def forward(self, st_mse, st_label, weight=1e-1):
+    def forward(self, st_mse, st_label, weight=1e+1):
         loss = self.criterion_s(st_mse, st_label, weight)
         return loss
 
