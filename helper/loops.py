@@ -202,6 +202,7 @@ def train_distill(epoch, train_loader, module_list, criterion_list, optimizer, o
         top1.update(acc1[0], input.size(0))
         top5.update(acc5[0], input.size(0))
         st_top1.update(st_acc1[0], input.size(0))
+        print(st_acc1[0], input.size(0))
         # ===================backward=====================
         optimizer.zero_grad()
         loss.backward()
