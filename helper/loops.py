@@ -218,11 +218,11 @@ def train_distill(epoch, train_loader, module_list, criterion_list, optimizer, o
                   'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                   'Loss_kd {loss_kd.val:.4f} ({loss_kd.avg:.4f})\t'
-                  'ST_ACC {st_acc.val:.3f} ({st_acc.avg:.3f})\t'
+                  'ST_ACC {st_top1.val:.3f} ({st_top1.avg:.3f})\t'
                   'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                   'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                 epoch, idx, len(train_loader), batch_time=batch_time,
-                data_time=data_time, loss=losses, loss_kd=loss_kds, st_acc=st_acc1, top1=top1, top5=top5))
+                data_time=data_time, loss=losses, loss_kd=loss_kds, st_top1=st_top1, top1=top1, top5=top5))
             sys.stdout.flush()
 
     print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
