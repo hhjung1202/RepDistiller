@@ -91,7 +91,10 @@ def parse_option():
     parser.add_argument('--hint_layer', default=2, type=int, choices=[0, 1, 2, 3, 4])
 
     # self
+    parser.add_argument('--path_s', type=str, default=None, help='self student model snapshot')
+    parser.add_argument('--freeze', type=str, default="True", choices=["True", "False"])
     parser.add_argument('--pos', default=1, type=int, choices=[0, 1, 2, 3])
+
 
     opt = parser.parse_args()
 
@@ -126,6 +129,7 @@ def parse_option():
         os.makedirs(opt.save_folder)
 
     opt.is_self = True if opt.distill == "self" else False
+    opt.is_freeze = True if opt.freeze == "True" else False
 
     return opt
 
@@ -147,6 +151,10 @@ def load_teacher(model_path, n_cls):
     print('==> done')
     return model
 
+def load_self(model, model_path):
+    print('==> loading self model')
+    model.load_state_dict(torch.load(model_path)['model'])
+    print('==> done')
 
 def main():
     best_acc = 0
@@ -183,6 +191,14 @@ def main():
         model_s = model_dict_self[opt.model_s](num_classes=n_cls, feat_t=feat_t)
     else:
         model_s = model_dict[opt.model_s](num_classes=n_cls)
+    if opt.path_s is not None:
+        load_self(model_s, opt.path_s)
+    if opt.is_freeze:
+        freeze=[model_s.conv1, model_s.block1, model_s.block2, model_s.block3, model_s.bn1]
+        for m in freeze:
+            for param in m.parameters():
+                param.requires_grad = False
+
     model_s.eval()
     feat_s, _ = model_s(data, is_feat=True)
 
