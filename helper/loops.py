@@ -196,13 +196,14 @@ def train_distill(epoch, train_loader, module_list, criterion_list, optimizer, o
         loss = opt.gamma * loss_cls + opt.alpha * loss_div + opt.beta * loss_kd
 
         acc1, acc5 = accuracy(logit_s, target, topk=(1, 5))
-        st_acc1 = accuracy(st_mse, st_label, topk=(1,))
         losses.update(loss.item(), input.size(0))
         loss_kds.update(loss_kd.item(), input.size(0))
         top1.update(acc1[0], input.size(0))
         top5.update(acc5[0], input.size(0))
+        st_acc1 = accuracy(st_mse, st_label, topk=(1,))
         st_top1.update(st_acc1[0], input.size(0))
-        print(st_acc1[0], input.size(0))
+        print(st_mse.size(), st_label.size())
+        print(st_acc1[0])
         # ===================backward=====================
         optimizer.zero_grad()
         loss.backward()
