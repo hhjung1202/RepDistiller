@@ -90,6 +90,7 @@ def train_distill(epoch, train_loader, module_list, criterion_list, optimizer, o
     losses = AverageMeter()
     loss_kds = AverageMeter()
     top1 = AverageMeter()
+    st_top1 = AverageMeter()
     top5 = AverageMeter()
 
     end = time.time()
@@ -195,11 +196,12 @@ def train_distill(epoch, train_loader, module_list, criterion_list, optimizer, o
         loss = opt.gamma * loss_cls + opt.alpha * loss_div + opt.beta * loss_kd
 
         acc1, acc5 = accuracy(logit_s, target, topk=(1, 5))
+        st_acc1 = accuracy(st_mse, st_label, topk=(1,))
         losses.update(loss.item(), input.size(0))
         loss_kds.update(loss_kd.item(), input.size(0))
         top1.update(acc1[0], input.size(0))
         top5.update(acc5[0], input.size(0))
-
+        st_top1.update(st_acc1[0], input.size(0))
         # ===================backward=====================
         optimizer.zero_grad()
         loss.backward()
@@ -216,10 +218,11 @@ def train_distill(epoch, train_loader, module_list, criterion_list, optimizer, o
                   'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                   'Loss_kd {loss_kd.val:.4f} ({loss_kd.avg:.4f})\t'
+                  'ST_ACC {st_acc.val:.3f} ({st_acc.avg:.3f})\t'
                   'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                   'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                 epoch, idx, len(train_loader), batch_time=batch_time,
-                data_time=data_time, loss=losses, loss_kd=loss_kds, top1=top1, top5=top5))
+                data_time=data_time, loss=losses, loss_kd=loss_kds, st_acc=st_acc1, top1=top1, top5=top5))
             sys.stdout.flush()
 
     print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
