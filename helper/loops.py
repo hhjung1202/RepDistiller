@@ -117,10 +117,10 @@ def train_distill(epoch, train_loader, module_list, criterion_list, optimizer, o
         with torch.no_grad():
             feat_t, logit_t = model_t(input, is_feat=True, preact=preact)
             feat_t = [f.detach() for f in feat_t]
-            if opt.is_self:
-                style = model_s(input, style_set=[feat_t, None, opt.pos, st_label])
-                style = style.detach()
+
         if opt.is_self:
+            st_logit, style = model_s(input, style_set=[feat_t, None, opt.pos, st_label])
+            # style = style.detach()
             feat_s, logit_s, st_mse = model_s(input, preact=preact, style_set=[None, style, None, None])
         else:
             feat_s, logit_s = model_s(input, is_feat=True, preact=preact)
@@ -128,6 +128,10 @@ def train_distill(epoch, train_loader, module_list, criterion_list, optimizer, o
         # cls + kl div
         loss_cls = criterion_cls(logit_s, target)
         loss_div = criterion_div(logit_s, logit_t)
+
+        if opt.is_self:
+            st_loss_cls = criterion_cls(st_logit, target)
+            st_loss_div = criterion_div(st_logit, logit_t)            
 
         # other kd beyond KL divergence
         if opt.distill == 'kd':
@@ -192,7 +196,10 @@ def train_distill(epoch, train_loader, module_list, criterion_list, optimizer, o
         else:
             raise NotImplementedError(opt.distill)
 
-        loss = opt.gamma * loss_cls + opt.alpha * loss_div + opt.beta * loss_kd
+        if opt.is_self:
+            loss = opt.gamma * loss_cls + opt.alpha * loss_div + opt.beta * loss_kd + opt.delta * st_loss_cls + opt.epsilon * st_loss_div
+        else:
+            loss = opt.gamma * loss_cls + opt.alpha * loss_div + opt.beta * loss_kd
 
         acc1, acc5 = accuracy(logit_s, target, topk=(1, 5))
         losses.update(loss.item(), input.size(0))

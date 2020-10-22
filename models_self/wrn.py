@@ -54,7 +54,7 @@ class NetworkBlock(nn.Module):
 
 
 class WideResNet(nn.Module):
-    def __init__(self, depth, num_classes, feat_t, widen_factor=1, dropRate=0.0):
+    def __init__(self, depth, num_classes, feat_t, fx, widen_factor=1, dropRate=0.0):
         super(WideResNet, self).__init__()
         nChannels = [16, 16*widen_factor, 32*widen_factor, 64*widen_factor]
         assert (depth - 4) % 6 == 0, 'depth should be 6n+4'
@@ -84,7 +84,19 @@ class WideResNet(nn.Module):
                     ]
         self.Style_Contrastive = Style_Contrastive()
         self.adain = Adain()
-        self.fx = nn.Conv2d(nChannels[3], nChannels[3], kernel_size=1, stride=1, padding=0, bias=False)
+        self.fx = [
+                    nn.Conv2d(nChannels[3], nChannels[3], kernel_size=1, stride=1, padding=0, bias=False),
+                    nn.Conv2d(nChannels[3], nChannels[3], kernel_size=3, stride=1, padding=1, bias=False),
+                    nn.Sequential(
+                        nn.Conv2d(nChannels[3], nChannels[3], kernel_size=3, stride=1, padding=1, bias=False),
+                        nn.ReLU(inplace=True)
+                        nn.Conv2d(nChannels[3], nChannels[3], kernel_size=3, stride=1, padding=1, bias=False),
+                    ),
+                    nn.Sequential(
+                        nn.Conv2d(nChannels[3], nChannels[3], kernel_size=1, stride=1, padding=0, bias=False),
+                        nn.ReLU(inplace=True)
+                        nn.Conv2d(nChannels[3], nChannels[3], kernel_size=1, stride=1, padding=0, bias=False),
+                    )][fx]
         # here
 
         for m in self.modules():
@@ -124,20 +136,24 @@ class WideResNet(nn.Module):
     def extract_style(self, x, style_set):
         group_t, _, pos, st_label = style_set
         out = self.conv1(x)
-        if pos == 0:
-            out = self.adaptive_forward(out, st_label, group_t[pos], pos)
+        if pos[0] == 1:
+            out = self.adaptive_forward(out, st_label, group_t[0], 0)
         out = self.block1(out)
-        if pos == 1:
-            out = self.adaptive_forward(out, st_label, group_t[pos], pos)
+        if pos[1] == 1:
+            out = self.adaptive_forward(out, st_label, group_t[1], 1)
         out = self.block2(out)
-        if pos == 2:
-            out = self.adaptive_forward(out, st_label, group_t[pos], pos)
+        if pos[2] == 1:
+            out = self.adaptive_forward(out, st_label, group_t[2], 2)
         out = self.block3(out)
-        if pos == 3:
-            out = self.adaptive_forward(out, st_label, group_t[pos], pos)
+        if pos[3] == 1:
+            out = self.adaptive_forward(out, st_label, group_t[3], 3)
         out = self.relu(self.bn1(out))
         style = self.fx(out)
-        return style
+
+        out = F.avg_pool2d(out, 8)
+        out = out.view(-1, self.nChannels)
+        out = self.fc(out)
+        return out, style
 
     def forward_style(self, x, preact, style_set):
         style_ = style_set[1]
