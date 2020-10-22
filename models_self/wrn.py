@@ -89,12 +89,12 @@ class WideResNet(nn.Module):
                     nn.Conv2d(nChannels[3], nChannels[3], kernel_size=3, stride=1, padding=1, bias=False),
                     nn.Sequential(
                         nn.Conv2d(nChannels[3], nChannels[3], kernel_size=3, stride=1, padding=1, bias=False),
-                        nn.ReLU(inplace=True)
+                        nn.ReLU(inplace=True),
                         nn.Conv2d(nChannels[3], nChannels[3], kernel_size=3, stride=1, padding=1, bias=False),
                     ),
                     nn.Sequential(
                         nn.Conv2d(nChannels[3], nChannels[3], kernel_size=1, stride=1, padding=0, bias=False),
-                        nn.ReLU(inplace=True)
+                        nn.ReLU(inplace=True),
                         nn.Conv2d(nChannels[3], nChannels[3], kernel_size=1, stride=1, padding=0, bias=False),
                     )][fx]
         # here
