@@ -120,7 +120,7 @@ def train_distill(epoch, train_loader, module_list, criterion_list, optimizer, o
 
         if opt.is_self:
             st_logit, style = model_s(input, style_set=[feat_t, None, opt.pos, st_label])
-            # style = style.detach()
+            style = style.detach()
             feat_s, logit_s, st_mse = model_s(input, preact=preact, style_set=[None, style, None, None])
         else:
             feat_s, logit_s = model_s(input, is_feat=True, preact=preact)
