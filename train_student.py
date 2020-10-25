@@ -46,7 +46,7 @@ def parse_option():
     parser.add_argument('--save_freq', type=int, default=40, help='save frequency')
     parser.add_argument('--batch_size', type=int, default=64, help='batch_size')
     parser.add_argument('--num_workers', type=int, default=8, help='num of workers to use')
-    parser.add_argument('--epochs', type=int, default=240, help='number of training epochs')
+    parser.add_argument('--epochs', type=int, default=360, help='number of training epochs')
     parser.add_argument('--init_epochs', type=int, default=30, help='init training for two-stage methods')
 
     # optimization
@@ -94,7 +94,10 @@ def parse_option():
     parser.add_argument('--pos', default=[0,0,0,1], nargs='+', type=int, help='position for Adain 4 argumentation 0 or 1')
     parser.add_argument('-c', '--delta', type=float, default=0, help='adaptive logits weight for classification')
     parser.add_argument('-d', '--epsilon', type=float, default=0, help='adaptive logits weight balance for KD')
-    parser.add_argument('--fx', default=0, type=int, choices=[0, 1, 2, 3], help='model shape of fx')
+    parser.add_argument('--fx', default=3, type=int, choices=[0, 1, 2, 3], help='model shape of fx')
+    parser.add_argument('--stop_self', default=-1, type=int, help='stop self epoch')
+    parser.add_argument('--projection', default=-1, type=int, help='stop mix epoch')
+
 
 
     opt = parser.parse_args()
@@ -313,7 +316,17 @@ def main():
 
     # routine
     for epoch in range(1, opt.epochs + 1):
+        if epoch == opt.stop_self:
+            opt.b = 0
+            opt.r *= 1e+1
+            opt.a *= 1e+1
+            opt.c *= 1e+1
+            opt.d *= 1e+1
 
+        if epoch == opt.projection:
+            opt.b = 0
+            opt.c = 0
+            opt.d = 0
         adjust_learning_rate(epoch, opt, optimizer)
         print("==> training...")
 

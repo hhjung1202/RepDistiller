@@ -85,18 +85,12 @@ class WideResNet(nn.Module):
         self.Style_Contrastive = Style_Contrastive()
         self.adain = Adain()
         self.fx = [
+                    nn.Conv2d(nChannels[0], nChannels[0], kernel_size=1, stride=1, padding=0, bias=False),
+                    nn.Conv2d(nChannels[1], nChannels[1], kernel_size=1, stride=1, padding=0, bias=False),
+                    nn.Conv2d(nChannels[2], nChannels[2], kernel_size=1, stride=1, padding=0, bias=False),
                     nn.Conv2d(nChannels[3], nChannels[3], kernel_size=1, stride=1, padding=0, bias=False),
-                    nn.Conv2d(nChannels[3], nChannels[3], kernel_size=3, stride=1, padding=1, bias=False),
-                    nn.Sequential(
-                        nn.Conv2d(nChannels[3], nChannels[3], kernel_size=3, stride=1, padding=1, bias=False),
-                        nn.ReLU(inplace=True),
-                        nn.Conv2d(nChannels[3], nChannels[3], kernel_size=3, stride=1, padding=1, bias=False),
-                    ),
-                    nn.Sequential(
-                        nn.Conv2d(nChannels[3], nChannels[3], kernel_size=1, stride=1, padding=0, bias=False),
-                        nn.ReLU(inplace=True),
-                        nn.Conv2d(nChannels[3], nChannels[3], kernel_size=1, stride=1, padding=0, bias=False),
-                    )][fx]
+                ][fx]
+        self.num_fx = fx
         # here
 
         for m in self.modules():
@@ -135,20 +129,23 @@ class WideResNet(nn.Module):
 
     def extract_style(self, x, style_set):
         group_t, _, pos, st_label = style_set
+        style=None
         out = self.conv1(x)
-        if pos[0] == 1:
-            out = self.adaptive_forward(out, st_label, group_t[0], 0)
+        out = self.adaptive_forward(out, st_label, group_t[0], 0) if pos[0] == 1 else out
         out = self.block1(out)
-        if pos[1] == 1:
-            out = self.adaptive_forward(out, st_label, group_t[1], 1)
+        style = self.fx(out) if self.num_fx == 0 else style
+
+        out = self.adaptive_forward(out, st_label, group_t[1], 1) if pos[1] == 1 else out
         out = self.block2(out)
-        if pos[2] == 1:
-            out = self.adaptive_forward(out, st_label, group_t[2], 2)
+        style = self.fx(out) if self.num_fx == 1 else style
+        
+        out = self.adaptive_forward(out, st_label, group_t[2], 2) if pos[2] == 1 else out
         out = self.block3(out)
-        if pos[3] == 1:
-            out = self.adaptive_forward(out, st_label, group_t[3], 3)
+        style = self.fx(out) if self.num_fx == 2 else style
+
+        out = self.adaptive_forward(out, st_label, group_t[3], 3) if pos[3] == 1 else out
         out = self.relu(self.bn1(out))
-        style = self.fx(out)
+        style = self.fx(out) if self.num_fx == 3 else style
 
         out = F.avg_pool2d(out, 8)
         out = out.view(-1, self.nChannels)
@@ -157,17 +154,20 @@ class WideResNet(nn.Module):
 
     def forward_style(self, x, preact, style_set):
         style_ = style_set[1]
-
+        base=None
         out = self.conv1(x)
         f0 = out
         out = self.block1(out)
+        base = self.fx(out) if self.num_fx == 0 else base
         f1 = out
         out = self.block2(out)
+        base = self.fx(out) if self.num_fx == 1 else base
         f2 = out
         out = self.block3(out)
+        base = self.fx(out) if self.num_fx == 2 else base
         f3 = out
         out = self.relu(self.bn1(out))
-        base = self.fx(out)
+        base = self.fx(out) if self.num_fx == 3 else base
         st_mse = self.Style_Contrastive(base, style_)
         out = F.avg_pool2d(out, 8)
         out = out.view(-1, self.nChannels)
