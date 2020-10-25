@@ -85,9 +85,9 @@ class WideResNet(nn.Module):
         self.Style_Contrastive = Style_Contrastive()
         self.adain = Adain()
         self.fx = [
-                    nn.Conv2d(nChannels[0], nChannels[0], kernel_size=1, stride=1, padding=0, bias=False),
                     nn.Conv2d(nChannels[1], nChannels[1], kernel_size=1, stride=1, padding=0, bias=False),
                     nn.Conv2d(nChannels[2], nChannels[2], kernel_size=1, stride=1, padding=0, bias=False),
+                    nn.Conv2d(nChannels[3], nChannels[3], kernel_size=1, stride=1, padding=0, bias=False),
                     nn.Conv2d(nChannels[3], nChannels[3], kernel_size=1, stride=1, padding=0, bias=False),
                 ][fx]
         self.num_fx = fx
