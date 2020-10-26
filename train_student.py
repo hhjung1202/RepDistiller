@@ -98,8 +98,6 @@ def parse_option():
     parser.add_argument('--stop_self', default=-1, type=int, help='stop self epoch')
     parser.add_argument('--projection', default=-1, type=int, help='stop mix epoch')
 
-
-
     opt = parser.parse_args()
 
     # set different learning rate from these 4 models
@@ -315,18 +313,19 @@ def main():
     print('teacher accuracy: ', teacher_acc)
 
     # routine
+
     for epoch in range(1, opt.epochs + 1):
         if epoch == opt.stop_self:
-            opt.b = 0
-            opt.r *= 1e+1
-            opt.a *= 1e+1
-            opt.c *= 1e+1
-            opt.d *= 1e+1
+            opt.beta = 0
+            opt.gamma *= 1e+1
+            opt.alpha *= 1e+1
+            opt.delta *= 1e+1
+            opt.epsilon *= 1e+1
 
         if epoch == opt.projection:
-            opt.b = 0
-            opt.c = 0
-            opt.d = 0
+            opt.beta = 0
+            opt.delta = 0
+            opt.epsilon = 0
         adjust_learning_rate(epoch, opt, optimizer)
         print("==> training...")
 
